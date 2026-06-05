@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mission Control</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0d0d0f;
+    --panel:#16161a;
+    --panel-2:#1e1e24;
+    --line:#2a2a32;
+    --ink:#f4f1e8;
+    --dim:#8a8a96;
+    --acc:#ff5c2b;
+    --acc-2:#43e0a8;
+    --warn:#ffd23f;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Space Mono',monospace;
+    min-height:100vh;
+    background-image:
+      radial-gradient(circle at 15% 10%, rgba(255,92,43,.08), transparent 40%),
+      radial-gradient(circle at 85% 90%, rgba(67,224,168,.07), transparent 45%);
+  }
+  .wrap{max-width:880px;margin:0 auto;padding:32px 20px 80px}
+  header{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:28px;border-bottom:2px solid var(--line);padding-bottom:20px}
+  h1{font-family:'Archivo Black',sans-serif;font-size:clamp(28px,6vw,46px);line-height:.95;letter-spacing:-1px;text-transform:uppercase}
+  h1 span{color:var(--acc)}
+  .tag{color:var(--dim);font-size:12px;letter-spacing:2px;text-transform:uppercase}
+  nav{display:flex;gap:8px;margin-bottom:24px}
+  .tab{
+    flex:1;padding:14px;background:var(--panel);border:2px solid var(--line);color:var(--dim);
+    font-family:'Space Mono',monospace;font-weight:700;font-size:14px;letter-spacing:1px;text-transform:uppercase;
+    cursor:pointer;transition:.15s;border-radius:2px;
+  }
+  .tab.active{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+  .tab:hover:not(.active){border-color:var(--acc);color:var(--ink)}
+  .view{display:none;animation:fade .25s ease}
+  .view.show{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .addbar{display:flex;gap:8px;margin-bottom:20px}
+  input[type=text]{
+    flex:1;background:var(--panel);border:2px solid var(--line);color:var(--ink);
+    padding:14px 16px;font-family:'Space Mono',monospace;font-size:15px;border-radius:2px;
+  }
+  input[type=text]:focus{outline:none;border-color:var(--acc)}
+  input::placeholder{color:var(--dim)}
+  .btn{
+    background:var(--acc);color:#fff;border:none;padding:0 22px;font-family:'Space Mono',monospace;
+    font-weight:700;font-size:14px;letter-spacing:1px;cursor:pointer;border-radius:2px;text-transform:uppercase;transition:.15s;
+  }
+  .btn:hover{filter:brightness(1.12)}
+  .btn:disabled{opacity:.35;cursor:not-allowed}
+  .meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;color:var(--dim);font-size:12px;letter-spacing:1px;text-transform:uppercase}
+  .meta b{color:var(--acc-2)}
+  .list{display:flex;flex-direction:column;gap:10px}
+  .card{
+    background:var(--panel);border:2px solid var(--line);border-radius:2px;padding:16px;
+    display:flex;align-items:center;gap:14px;transition:.15s;
+  }
+  .card:hover{border-color:var(--panel-2);background:var(--panel-2)}
+  .count{
+    flex:none;min-width:54px;height:54px;border-radius:2px;display:flex;align-items:center;justify-content:center;
+    font-family:'Archivo Black',sans-serif;font-size:22px;background:var(--bg);border:2px solid var(--acc);color:var(--acc);
+  }
+  .r .count{border-color:var(--acc-2);color:var(--acc-2)}
+  .body{flex:1;min-width:0}
+  .name{font-size:16px;font-weight:700;word-break:break-word}
+  .name.editing{display:none}
+  .editinp{display:none;width:100%;background:var(--bg);border:2px solid var(--acc);color:var(--ink);padding:8px 10px;font-family:'Space Mono',monospace;font-size:15px;border-radius:2px}
+  .editinp.show{display:block}
+  .sub{color:var(--dim);font-size:11px;letter-spacing:1px;margin-top:3px;text-transform:uppercase}
+  .acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+  .ib{
+    background:var(--bg);border:2px solid var(--line);color:var(--ink);width:38px;height:38px;border-radius:2px;
+    cursor:pointer;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;transition:.15s;font-family:'Space Mono',monospace;
+  }
+  .ib:hover{border-color:var(--acc);color:var(--acc)}
+  .ib.minus:hover{border-color:var(--warn);color:var(--warn)}
+  .ib.del:hover{border-color:#ff3b3b;color:#ff3b3b;background:rgba(255,59,59,.08)}
+  .ib.ok:hover{border-color:var(--acc-2);color:var(--acc-2)}
+  .empty{text-align:center;padding:50px 20px;color:var(--dim);border:2px dashed var(--line);border-radius:2px}
+  .empty span{font-size:36px;display:block;margin-bottom:10px}
+  footer{margin-top:40px;text-align:center;color:var(--dim);font-size:11px;letter-spacing:2px;text-transform:uppercase}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Mission<br><span>Control</span></h1>
+      <div class="tag" style="margin-top:10px">crud tracker · local storage</div>
+    </div>
+  </header>
+
+  <nav>
+    <button class="tab active" data-v="missions" onclick="switchView('missions')">◆ Missions</button>
+    <button class="tab" data-v="routines" onclick="switchView('routines')">↻ Routines</button>
+  </nav>
+
+  <!-- MISSIONS -->
+  <section id="missions" class="view show">
+    <div class="addbar">
+      <input type="text" id="mInput" placeholder="New mission…" maxlength="120" onkeydown="if(event.key==='Enter')add('m')">
+      <button class="btn" id="mAdd" onclick="add('m')">Add</button>
+    </div>
+    <div class="meta"><span>Counter increments per mission</span><span><b id="mCount">0</b> / 20</span></div>
+    <div class="list" id="mList"></div>
+  </section>
+
+  <!-- ROUTINES -->
+  <section id="routines" class="view">
+    <div class="addbar">
+      <input type="text" id="rInput" placeholder="New routine…" maxlength="120" onkeydown="if(event.key==='Enter')add('r')">
+      <button class="btn" id="rAdd" style="background:var(--acc-2);color:#04150d" onclick="add('r')">Add</button>
+    </div>
+    <div class="meta"><span>Counter = times used</span><span><b id="rCount">0</b> routines</span></div>
+    <div class="list" id="rList"></div>
+  </section>
+
+  <footer>Data persists across sessions on this device</footer>
+</div>
+
+<script>
+const MAX_MISSIONS = 20;
+const state = { m: [], r: [] };
+
+/* ---------- persistence (cross-session) ---------- */
+async function load(){
+  try{
+    const a = await window.storage.get('missions'); if(a) state.m = JSON.parse(a.value);
+  }catch(e){}
+  try{
+    const b = await window.storage.get('routines'); if(b) state.r = JSON.parse(b.value);
+  }catch(e){}
+  render('m'); render('r');
+}
+async function save(type){
+  const key = type==='m' ? 'missions' : 'routines';
+  try{ await window.storage.set(key, JSON.stringify(state[type==='m'?'m':'r'])); }
+  catch(e){ console.error('save failed', e); }
+}
+
+/* ---------- view switching ---------- */
+function switchView(v){
+  document.querySelectorAll('.view').forEach(s=>s.classList.toggle('show', s.id===v));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.v===v));
+}
+
+/* ---------- CRUD ---------- */
+function add(type){
+  const arr = state[type==='m'?'m':'r'];
+  if(type==='m' && arr.length>=MAX_MISSIONS) return;
+  const inp = document.getElementById(type+'Input');
+  const name = inp.value.trim();
+  if(!name) return;
+  arr.push({id:Date.now()+''+Math.random().toString(36).slice(2,6), name, count:0});
+  inp.value='';
+  save(type); render(type);
+}
+function step(type,id,d){
+  const arr = state[type==='m'?'m':'r'];
+  const it = arr.find(x=>x.id===id);
+  if(!it) return;
+  it.count = Math.max(0, it.count + d);
+  save(type); render(type);
+}
+function del(type,id){
+  const key = type==='m'?'m':'r';
+  state[key] = state[key].filter(x=>x.id!==id);
+  save(type); render(type);
+}
+function startEdit(type,id){
+  const card = document.getElementById('card-'+id);
+  card.querySelector('.name').classList.add('editing');
+  const ei = card.querySelector('.editinp');
+  ei.classList.add('show'); ei.focus(); ei.select();
+}
+function commitEdit(type,id,val){
+  const arr = state[type==='m'?'m':'r'];
+  const it = arr.find(x=>x.id===id);
+  const name = val.trim();
+  if(it && name) it.name = name;
+  save(type); render(type);
+}
+
+/* ---------- render ---------- */
+function render(type){
+  const key = type==='m'?'m':'r';
+  const arr = state[key];
+  const list = document.getElementById(type+'List');
+  const cls = type==='r' ? ' r' : '';
+
+  if(type==='m'){
+    document.getElementById('mCount').textContent = arr.length;
+    document.getElementById('mAdd').disabled = arr.length>=MAX_MISSIONS;
+    document.getElementById('mInput').disabled = arr.length>=MAX_MISSIONS;
+  } else {
+    document.getElementById('rCount').textContent = arr.length;
+  }
+
+  if(arr.length===0){
+    list.innerHTML = `<div class="empty"><span>${type==='m'?'◆':'↻'}</span>No ${type==='m'?'missions':'routines'} yet — add one above.</div>`;
+    return;
+  }
+
+  list.innerHTML = arr.map(it=>{
+    const sub = type==='m' ? 'progress count' : (it.count===1?'1 use':it.count+' uses');
+    return `
+    <div class="card${cls}" id="card-${it.id}">
+      <div class="count">${it.count}</div>
+      <div class="body">
+        <div class="name">${esc(it.name)}</div>
+        <input class="editinp" value="${esc(it.name)}" maxlength="120"
+          onkeydown="if(event.key==='Enter')commitEdit('${type}','${it.id}',this.value);if(event.key==='Escape')render('${type}')"
+          onblur="commitEdit('${type}','${it.id}',this.value)">
+        <div class="sub">${sub}</div>
+      </div>
+      <div class="acts">
+        <button class="ib minus" title="−1" onclick="step('${type}','${it.id}',-1)">−</button>
+        <button class="ib ok" title="+1" onclick="step('${type}','${it.id}',1)">+</button>
+        <button class="ib" title="Edit" onclick="startEdit('${type}','${it.id}')">✎</button>
+        <button class="ib del" title="Delete" onclick="del('${type}','${it.id}')">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function esc(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+load();
+</script>
+</body>
+</html>
