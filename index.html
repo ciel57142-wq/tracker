@@ -67,6 +67,15 @@
   .crumb h2{font-family:'Archivo Black',sans-serif;font-size:clamp(18px,4vw,26px);text-transform:uppercase;letter-spacing:-.5px}
   footer{margin-top:40px;text-align:center;color:var(--dim);font-size:11px;letter-spacing:2px;text-transform:uppercase}
 
+  .grouphead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:22px 0 10px;flex-wrap:wrap}
+  .grouphead:first-child{margin-top:0}
+  .grouphead h3{font-family:'Archivo Black',sans-serif;font-size:15px;text-transform:uppercase;letter-spacing:-.3px;color:var(--acc)}
+  .imp{background:var(--acc-2);color:#04150d;border:none;padding:8px 14px;border-radius:2px;cursor:pointer;font-family:'Space Mono',monospace;font-weight:700;font-size:11px;letter-spacing:1px;text-transform:uppercase;transition:.15s}
+  .imp:hover{filter:brightness(1.1)}
+  .imp.done{background:var(--panel-2);color:var(--dim);cursor:default}
+  .libitem{background:var(--panel);border:2px solid var(--line);border-radius:2px;padding:13px 16px;font-size:14px;display:flex;gap:12px;align-items:flex-start}
+  .libitem .dot{color:var(--acc);flex:none;font-weight:700}
+
   /* tap targets sized for touch, no zoom-on-focus */
   .ib,.btn,.tab,.back{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
   input[type=text]{font-size:16px} /* prevents iOS auto-zoom */
@@ -104,6 +113,7 @@
   <nav>
     <button class="tab active" data-v="events" onclick="switchView('events')">◆ Events</button>
     <button class="tab" data-v="routines" onclick="switchView('routines')">↻ Routines</button>
+    <button class="tab" data-v="library" onclick="switchView('library')">▤ Library</button>
   </nav>
 
   <!-- EVENTS -->
@@ -141,6 +151,12 @@
     <div class="list" id="rList"></div>
   </section>
 
+  <!-- LIBRARY (from spreadsheet) -->
+  <section id="library" class="view">
+    <div class="meta"><span>Reference list · import into Events</span><span><b id="lCount">0</b> missions</span></div>
+    <div class="list" id="lList"></div>
+  </section>
+
   <footer>Data is tied to your account — open anywhere, it follows you</footer>
 </div>
 
@@ -152,7 +168,7 @@ let openEventId = null;
 async function load(){
   try{ const a = await window.storage.get('events'); if(a) state.events = JSON.parse(a.value); }catch(e){}
   try{ const b = await window.storage.get('routines'); if(b) state.routines = JSON.parse(b.value); }catch(e){}
-  renderEvents(); renderRoutines();
+  renderEvents(); renderRoutines(); renderLibrary();
 }
 async function saveEvents(){ try{ await window.storage.set('events', JSON.stringify(state.events)); }catch(e){console.error(e);} }
 async function saveRoutines(){ try{ await window.storage.set('routines', JSON.stringify(state.routines)); }catch(e){console.error(e);} }
@@ -329,6 +345,50 @@ function renderRoutines(){
         <button class="ib del" title="Delete" onclick="delRoutine('${r.id}')">✕</button>
       </div>
     </div>`).join('');
+}
+
+/* ===== LIBRARY (reference data from spreadsheet) ===== */
+const LIBRARY = [
+  {event:"Dating Event - JIGsaw Dating", missions:[
+    "talk to five people and just introduce yourself",
+    "Use one opinion opener",
+    "Use a cold read as transition"
+  ]},
+  {event:"Bar - Cowboy Jacks", missions:[
+    "Greet and talk with bouncers in the line",
+    "Talk with people behind me and in front of me in the line",
+    "Go the secind floor and order a drink",
+    "Mienser Exercise - I see [groups of women/potential target]",
+    "Approach with default opener",
+    "Approach with opinion opener",
+    "Use three routines either sperarately or in one interaction (cold read, push pull, qualification)"
+  ]}
+];
+
+function importGroup(idx){
+  const g = LIBRARY[idx];
+  // reuse an existing event with the same name, or create one
+  let ev = state.events.find(e=>e.name===g.event);
+  if(!ev){ ev = {id:uid(), name:g.event, missions:[]}; state.events.push(ev); }
+  g.missions.forEach(name=>{
+    if(ev.missions.length>=MAX_MISSIONS) return;
+    if(!ev.missions.some(m=>m.name===name)) ev.missions.push({id:uid(), name, count:0});
+  });
+  saveEvents(); renderEvents(); renderLibrary();
+}
+
+function renderLibrary(){
+  const list = document.getElementById('lList');
+  const total = LIBRARY.reduce((n,g)=>n+g.missions.length,0);
+  document.getElementById('lCount').textContent = total;
+  list.innerHTML = LIBRARY.map((g,idx)=>{
+    const imported = state.events.some(e=>e.name===g.event);
+    const btn = imported
+      ? `<button class="imp done">✓ Imported</button>`
+      : `<button class="imp" onclick="importGroup(${idx})">+ Import to Events</button>`;
+    const items = g.missions.map(m=>`<div class="libitem"><span class="dot">◆</span><span>${esc(m)}</span></div>`).join('');
+    return `<div class="grouphead"><h3>${esc(g.event)}</h3>${btn}</div><div class="list">${items}</div>`;
+  }).join('');
 }
 
 load();
