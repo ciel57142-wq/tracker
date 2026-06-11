@@ -76,6 +76,14 @@
   .libitem{background:var(--panel);border:2px solid var(--line);border-radius:2px;padding:13px 16px;font-size:14px;display:flex;gap:12px;align-items:flex-start}
   .libitem .dot{color:var(--acc);flex:none;font-weight:700}
 
+  .addbar-col{flex-direction:column;align-items:stretch}
+  textarea{background:var(--panel);border:2px solid var(--line);color:var(--ink);padding:14px 16px;font-family:'Space Mono',monospace;font-size:16px;border-radius:2px;resize:vertical;width:100%}
+  textarea:focus{outline:none;border-color:var(--acc-2)}
+  textarea::placeholder{color:var(--dim)}
+  .rbody{color:var(--dim);font-size:13px;line-height:1.45;margin-top:6px;white-space:pre-wrap;word-break:break-word}
+  .editbody{display:none;width:100%;background:var(--bg);border:2px solid var(--acc-2);color:var(--ink);padding:8px 10px;margin-top:6px;font-family:'Space Mono',monospace;font-size:14px;border-radius:2px;resize:vertical}
+  .editbody.show{display:block}
+
   /* tap targets sized for touch, no zoom-on-focus */
   .ib,.btn,.tab,.back{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
   input[type=text]{font-size:16px} /* prevents iOS auto-zoom */
@@ -143,9 +151,10 @@
 
   <!-- ROUTINES -->
   <section id="routines" class="view">
-    <div class="addbar">
-      <input type="text" id="rInput" placeholder="New routine…" maxlength="120" onkeydown="if(event.key==='Enter')addRoutine()">
-      <button class="btn" id="rAdd" style="background:var(--acc-2);color:#04150d" onclick="addRoutine()">Add</button>
+    <div class="addbar addbar-col">
+      <input type="text" id="rInput" placeholder="Routine headline…" maxlength="120" onkeydown="if(event.key==='Enter')document.getElementById('rBody').focus()">
+      <textarea id="rBody" placeholder="Body text (optional)…" maxlength="2000" rows="2"></textarea>
+      <button class="btn" id="rAdd" style="background:var(--acc-2);color:#04150d" onclick="addRoutine()">Add Routine</button>
     </div>
     <div class="meta"><span>Counter = times used</span><span><b id="rCount">0</b> routines</span></div>
     <div class="list" id="rList"></div>
@@ -301,9 +310,11 @@ function renderMissions(){
 /* ===== ROUTINES ===== */
 function addRoutine(){
   const inp = document.getElementById('rInput');
+  const bodyInp = document.getElementById('rBody');
   const name = inp.value.trim(); if(!name) return;
-  state.routines.push({id:uid(), name, count:0});
-  inp.value=''; saveRoutines(); renderRoutines();
+  const body = bodyInp.value.trim();
+  state.routines.push({id:uid(), name, body, count:0});
+  inp.value=''; bodyInp.value=''; saveRoutines(); renderRoutines(); inp.focus();
 }
 function stepRoutine(id,d){
   const r = state.routines.find(x=>x.id===id); if(!r) return;
@@ -316,10 +327,17 @@ function startEditRoutine(id){
   const card = document.getElementById('r-'+id);
   card.querySelector('.name').classList.add('editing');
   const ei = card.querySelector('.editinp'); ei.classList.add('show'); ei.focus(); ei.select();
+  const eb = card.querySelector('.editbody'); if(eb) eb.classList.add('show');
 }
-function commitEditRoutine(id,val){
-  const r = state.routines.find(x=>x.id===id); const name=val.trim();
-  if(r && name) r.name = name; saveRoutines(); renderRoutines();
+function commitEditRoutine(id){
+  const card = document.getElementById('r-'+id);
+  if(!card) return;
+  const r = state.routines.find(x=>x.id===id); if(!r) return;
+  const name = card.querySelector('.editinp').value.trim();
+  const eb = card.querySelector('.editbody');
+  if(name) r.name = name;
+  if(eb) r.body = eb.value.trim();
+  saveRoutines(); renderRoutines();
 }
 function renderRoutines(){
   const list = document.getElementById('rList');
@@ -334,8 +352,12 @@ function renderRoutines(){
       <div class="body">
         <div class="name">${esc(r.name)}</div>
         <input class="editinp" value="${esc(r.name)}" maxlength="120"
-          onkeydown="if(event.key==='Enter')commitEditRoutine('${r.id}',this.value);if(event.key==='Escape')renderRoutines()"
-          onblur="commitEditRoutine('${r.id}',this.value)">
+          onkeydown="if(event.key==='Escape')renderRoutines()"
+          onblur="if(!this.closest('.card').contains(event.relatedTarget))commitEditRoutine('${r.id}')">
+        ${r.body ? `<div class="rbody">${esc(r.body)}</div>` : ''}
+        <textarea class="editbody" rows="3" maxlength="2000" placeholder="Body text…"
+          onkeydown="if(event.key==='Escape')renderRoutines()"
+          onblur="if(!this.closest('.card').contains(event.relatedTarget))commitEditRoutine('${r.id}')">${esc(r.body||'')}</textarea>
         <div class="sub">${r.count===1?'1 use':r.count+' uses'}</div>
       </div>
       <div class="acts">
